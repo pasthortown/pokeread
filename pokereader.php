@@ -205,7 +205,7 @@ function process_player_options($options) {
         $buttons = 'L=A';
     }
     $text_speed_frame = convert_hex_to_bin(substr($options, getCharCountByBytesCount(1), getCharCountByBytesCount(1)));
-    $text_speed = hexdec(substr($text_speed_frame, -3, 3));
+    $text_speed = hexdec(substr($text_speed_frame, 0, 3));
     if ($text_speed == 0) {
         $text_speed_settings = 'NORMAL';
     }
@@ -215,7 +215,7 @@ function process_player_options($options) {
     if ($text_speed == 2) {
         $text_speed_settings = 'FAST';
     }
-    $frame_style = 'TYPE '.(bindec(substr($text_speed_frame, 0, 5)) + 1);
+    $frame_style = substr($text_speed_frame, 3, 5);
     $sound = convert_hex_to_bin(substr($options, getCharCountByBytesCount(2), getCharCountByBytesCount(1)));
     $sound_settings = [
         "sound"=>'',
@@ -326,7 +326,7 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
-$filename = 'COMPLETO.sav';
+$filename = 'ANDRES.sav';
 $result = read_pokesave($filename);
 $trainner_data = process_trainner_data(($result['game_save_a']));
 $pokemon_boxes = proccess_pc_buffer($result['game_save_a']);
