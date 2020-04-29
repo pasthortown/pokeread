@@ -96,49 +96,49 @@ function get_sections($game_save) {
     foreach($secctions as $section) {
         $data = substr($section, 0, getCharCountByBytesCount(3968));
         $footer_data = substr($section, getCharCountByBytesCount(3968), getCharCountByBytesCount(116));
-        $id = substr($section, getCharCountByBytesCount(4084), getCharCountByBytesCount(1));
-        $checksum = substr($section, getCharCountByBytesCount(4085), getCharCountByBytesCount(7));
+        $id = hexdec(orderBytesToReadAsNumber(substr($section, getCharCountByBytesCount(4084), getCharCountByBytesCount(2))));
+        $checksum = substr($section, getCharCountByBytesCount(4086), getCharCountByBytesCount(7));
         $save_index = substr($section, getCharCountByBytesCount(4092), getCharCountByBytesCount(4));
-        if ($id == '00') {
+        if ($id == 0) {
             $toReturn["trainer_info"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '01') {
+        if ($id == 1) {
             $toReturn["team_items"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '02') {
+        if ($id == 2) {
             $toReturn["game_sate"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '03') {
+        if ($id == 3) {
             $toReturn["misc_data"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '04') {
+        if ($id == 4) {
             $toReturn["rival_info"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '05') {
+        if ($id == 5) {
             $toReturn["pc_buffer_a"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '06') {
+        if ($id == 6) {
             $toReturn["pc_buffer_b"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '07') {
+        if ($id == 7) {
             $toReturn["pc_buffer_c"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '08') {
+        if ($id == 8) {
             $toReturn["pc_buffer_d"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '09') {
+        if ($id == 9) {
             $toReturn["pc_buffer_e"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '0a') {
+        if ($id == 10) {
             $toReturn["pc_buffer_f"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '0b') {
+        if ($id == 11) {
             $toReturn["pc_buffer_g"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '0c') {
+        if ($id == 12) {
             $toReturn["pc_buffer_h"] = ["data"=>$data, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
-        if ($id == '0d') {
+        if ($id == 13) {
             $newData = substr($data,0,getCharCountByBytesCount(2000));
             $toReturn["pc_buffer_i"] = ["data"=>$newData, "id"=>$id, "checksum"=>$checksum, "save_index"=>$save_index, "footer_data"=>$footer_data];
         }
@@ -146,10 +146,9 @@ function get_sections($game_save) {
     return $toReturn;
 }
 
-function process_hours_played($data_readed) {
-    $data=$data_readed;
-    $toReturn=hexdec(substr($data, getCharCountByBytesCount(15), getCharCountByBytesCount(1)).substr($data, getCharCountByBytesCount(14), getCharCountByBytesCount(1)));
-    return $toReturn;
+function orderBytesToReadAsNumber($hex) {
+    $hex_pieces = str_split($hex, 2);
+    return join('', array_reverse($hex_pieces));
 }
 
 function process_trainner_data($data_readed) {
@@ -164,7 +163,7 @@ function process_trainner_data($data_readed) {
     $player_name = traduce_to_string(substr($data, getCharCountByBytesCount(0), getCharCountByBytesCount(7)));
     $player_gender = $gender;
     $player_trainer_id = substr($data, getCharCountByBytesCount(10), getCharCountByBytesCount(4));
-    $player_time_played = process_hours_played($data)."H " .
+    $player_time_played = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(14), getCharCountByBytesCount(2))))."H " .
                           hexdec(substr($data, getCharCountByBytesCount(16), getCharCountByBytesCount(1)))."m ".
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."s ".
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."FRAMES";
@@ -174,17 +173,37 @@ function process_trainner_data($data_readed) {
     $toReturn = [
         "player_name"=>$player_name,
         "player_gender"=>$player_gender,
-        "player_trainer_id"=>$player_trainer_id,
-        "player_time_played"=>$player_time_played,
-        "player_options"=>$player_options,
-        "player_game_code"=>$player_game_code,
-        "player_security_key"=>$player_security_key,
+        "trainer_id"=>$player_trainer_id,
+        "time_played"=>$player_time_played,
+        "options"=>$player_options,
+        "game_code"=>process_game_code($player_game_code),
+        "security_key"=>$player_security_key,
     ];
     return $toReturn;
 }
 
+function process_game_code($game_code) {
+    $toProcess = hexdec(orderBytesToReadAsNumber($game_code));
+    if ($toProcess == 0) {
+        return 'Ruby/Sapphire';
+    }
+    if ($toProcess == 1) {
+        return 'FireRed/LeafGreen';
+    }
+    return 'Emerald';
+}
+
 function process_player_options($options) {
-    $buttons_settings = substr($options, getCharCountByBytesCount(0), getCharCountByBytesCount(1));
+    $buttons_settings = hexDec(substr($options, getCharCountByBytesCount(0), getCharCountByBytesCount(1)));
+    if ($buttons_settings == 0) {
+        $buttons = 'HELP';
+    }
+    if ($buttons_settings == 1) {
+        $buttons = 'LR';
+    }
+    if ($buttons_settings == 2) {
+        $buttons = 'L=A';
+    }
     $text_speed_frame = convert_hex_to_bin(substr($options, getCharCountByBytesCount(1), getCharCountByBytesCount(1)));
     $text_speed = hexdec(substr($text_speed_frame, -3, 3));
     if ($text_speed == 0) {
@@ -219,7 +238,7 @@ function process_player_options($options) {
         $sound_settings['battle_scene'] = 'OFF';
     }
     $toReturn = [
-        "buttons"=>$buttons_settings,
+        "buttons"=>$buttons,
         "text_speed"=>$text_speed_settings,
         "sound_settings"=>$sound_settings,
         "frame_style"=>$frame_style,
