@@ -146,6 +146,12 @@ function get_sections($game_save) {
     return $toReturn;
 }
 
+function process_hours_played($data_readed) {
+    $data=$data_readed;
+    $toReturn=hexdec(substr($data, getCharCountByBytesCount(15), getCharCountByBytesCount(1)).substr($data, getCharCountByBytesCount(14), getCharCountByBytesCount(1)));
+    return $toReturn;
+}
+
 function process_trainner_data($data_readed) {
     $data = $data_readed['trainer_info']['data'];
     $gender_data = substr($data, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
@@ -155,10 +161,10 @@ function process_trainner_data($data_readed) {
     } else {
         $gender = 'CHICA';
     }
-    $player_name = traduce_to_string(substr($data, getCharCountByBytesCount(0), getCharCountByBytesCount(8)));
+    $player_name = traduce_to_string(substr($data, getCharCountByBytesCount(0), getCharCountByBytesCount(7)));
     $player_gender = $gender;
     $player_trainer_id = substr($data, getCharCountByBytesCount(10), getCharCountByBytesCount(4));
-    $player_time_played = substr($data, getCharCountByBytesCount(14), getCharCountByBytesCount(2))."H " .
+    $player_time_played = process_hours_played($data)."H " .
                           hexdec(substr($data, getCharCountByBytesCount(16), getCharCountByBytesCount(1)))."m ".
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."s ".
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."FRAMES";
