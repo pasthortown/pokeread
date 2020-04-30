@@ -151,7 +151,7 @@ function orderBytesToReadAsNumber($hex) {
     return join('', array_reverse($hex_pieces));
 }
 
-function process_trainner_data($data_readed) {
+function process_trainer_data($data_readed) {
     $data = $data_readed['trainer_info']['data'];
     $rival_data = $data_readed['rival_info']['data'];
     $gender_data = substr($data, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
@@ -312,23 +312,41 @@ function proccess_pc_buffer($data_readed) {
 }
 
 function build_pokemon_from_data($pokemon_data) {
+    $language_aviable = [
+        "0201"=>"JAPANESE",
+        "0202"=>"ENGLISH",
+        "0203"=>"FRENCH",
+        "0204"=>"ITALIAN",
+        "0205"=>"GERMAN",
+        "0206"=>"KOREAN",
+        "0207"=>"SPANISH",
+    ];
+    $personality_value = process_personality_value(substr($pokemon_data, 0, getCharCountByBytesCount(4)));
     $toReturn = [
-        'personality_value'=>substr($pokemon_data, 0, getCharCountByBytesCount(4)),
+        'personality_value'=>$personality_value,
         'original_trainer_id'=>substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)),
         'nickname'=>traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(8), getCharCountByBytesCount(10))),
-        'language'=>substr($pokemon_data, getCharCountByBytesCount(18), getCharCountByBytesCount(2)),
+        'language'=>$language_aviable[substr($pokemon_data, getCharCountByBytesCount(18), getCharCountByBytesCount(2))],
         'original_trainer_name'=>traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(20), getCharCountByBytesCount(7))),
-        'markings'=>substr($pokemon_data, getCharCountByBytesCount(27), getCharCountByBytesCount(1)),
+        'markings'=>hexdec(substr($pokemon_data, getCharCountByBytesCount(27), getCharCountByBytesCount(1))),
         'checksum'=>substr($pokemon_data, getCharCountByBytesCount(28), getCharCountByBytesCount(2)),
         'wtf'=>substr($pokemon_data, getCharCountByBytesCount(30), getCharCountByBytesCount(2)),
-        'data'=>substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48)),
+        'data'=>process_pokemon_subdata(str_split(substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48)), getCharCountByBytesCount(12))),
     ];
     return $toReturn;
 }
 
-function process_team_items($data_readed, $trainner_info) {
-    $game_code = $trainner_info['game_code'];
-    $security_key = $trainner_info['security_key'];
+function process_pokemon_subdata($pokemon_subdata) {
+    return $pokemon_subdata;
+}
+
+function process_personality_value($value) {
+    return $value;
+}
+
+function process_team_items($data_readed, $trainer_info) {
+    $game_code = $trainer_info['game_code'];
+    $security_key = $trainer_info['security_key'];
     $data = $data_readed['team_items']['data'];
     $team_size = 0;
     $team_pokemon_list = 0;
@@ -417,6 +435,32 @@ function xorByDigit($A, $B) {
     return '1';
 }
 
+function process_hall_of_fame($hall_of_fame_data) {
+    $teams_data = str_split(substr($hall_of_fame_data, 0, getCharCountByBytesCount(6000)),getCharCountByBytesCount(120));
+    $teams = [];
+    foreach($teams_data as $team_data) {
+        $team_to_process = str_split($team_data, getCharCountByBytesCount(20));
+        $team = [];
+        foreach($team_to_process as $pokemon_data) {
+            array_push($team, process_pokemon_hall_of_fame($pokemon_data));
+        }
+        array_push($teams, $team);
+    }
+    return $teams;
+}
+
+function process_pokemon_hall_of_fame($pokemon_data) {
+    $personality_value = process_personality_value(substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)));
+    $toReturn = [
+        "trainer_id" => substr($pokemon_data, 0, getCharCountByBytesCount(4)),
+        "personality_value" => $personality_value,
+        "spiece" => hexdec(substr($pokemon_data, getCharCountByBytesCount(8), getCharCountByBytesCount(1))),
+        "level" => substr($pokemon_data, getCharCountByBytesCount(9), getCharCountByBytesCount(1)),
+        "nickname" => traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(10), getCharCountByBytesCount(10))),
+    ];
+    return $toReturn;
+}
+
 header('Content-type:application/json;charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -426,13 +470,15 @@ header("Pragma: no-cache");
 
 $filename = 'COMPLETO.sav';
 $result = read_pokesave($filename);
-$trainner_info = process_trainner_data($result['game_save_a']);
+$trainer_info = process_trainer_data($result['game_save_a']);
 $pokemon_pc_boxes = proccess_pc_buffer($result['game_save_a']);
-$team_items = process_team_items($result['game_save_a'], $trainner_info);
+$team_items = process_team_items($result['game_save_a'], $trainer_info);
+$hall_of_fame = process_hall_of_fame($result['hall_of_fame']);
 $toReturn = [
-    "trainner_info" => $trainner_info,
+    "trainer_info" => $trainer_info,
     "pokemon_pc_boxes" => $pokemon_pc_boxes,
     "team_items" => $team_items,
+    "hall_of_fame" => $hall_of_fame,
 ];
 echo json_encode($toReturn);
 //echo json_encode(traduce_from_string('Luis'));
