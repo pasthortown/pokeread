@@ -153,6 +153,7 @@ function orderBytesToReadAsNumber($hex) {
 
 function process_trainner_data($data_readed) {
     $data = $data_readed['trainer_info']['data'];
+    $rival_data = $data_readed['rival_info']['data'];
     $gender_data = substr($data, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
     $gender = '';
     if (hexdec($gender_data) == 0) {
@@ -169,15 +170,21 @@ function process_trainner_data($data_readed) {
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."FRAMES";
     $player_options = process_player_options(substr($data, getCharCountByBytesCount(19), getCharCountByBytesCount(3)));
     $player_game_code = substr($data, getCharCountByBytesCount(172), getCharCountByBytesCount(4));
-    $player_security_key = substr($data, getCharCountByBytesCount(2808), getCharCountByBytesCount(4));
+    $player_security_key = orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(2808), getCharCountByBytesCount(4)));
+    $version_game = process_game_code($player_game_code);
+    $rival_name = 'N/A';
+    if ($version_game == 'FireRed/LeafGreen') {
+        $rival_name = traduce_to_string(substr($rival_data, getCharCountByBytesCount(3020), getCharCountByBytesCount(8)));
+    }
     $toReturn = [
         "player_name"=>$player_name,
         "player_gender"=>$player_gender,
         "trainer_id"=>$player_trainer_id,
         "time_played"=>$player_time_played,
         "options"=>$player_options,
-        "game_code"=>process_game_code($player_game_code),
+        "game_code"=>$version_game,
         "security_key"=>$player_security_key,
+        "rival_name"=>$rival_name,
     ];
     return $toReturn;
 }
@@ -205,7 +212,7 @@ function process_player_options($options) {
         $buttons = 'L=A';
     }
     $text_speed_frame = convert_hex_to_bin(substr($options, getCharCountByBytesCount(1), getCharCountByBytesCount(1)));
-    $text_speed = hexdec(substr($text_speed_frame, 0, 3));
+    $text_speed = bindec(substr($text_speed_frame, -3, 3));
     if ($text_speed == 0) {
         $text_speed_settings = 'NORMAL';
     }
@@ -215,7 +222,7 @@ function process_player_options($options) {
     if ($text_speed == 2) {
         $text_speed_settings = 'FAST';
     }
-    $frame_style = substr($text_speed_frame, 3, 5);
+    $frame_style = 'TYPE '.(bindec(substr($text_speed_frame, 0, 5)) + 1);
     $sound = convert_hex_to_bin(substr($options, getCharCountByBytesCount(2), getCharCountByBytesCount(1)));
     $sound_settings = [
         "sound"=>'',
@@ -319,6 +326,97 @@ function build_pokemon_from_data($pokemon_data) {
     return $toReturn;
 }
 
+function process_team_items($data_readed, $trainner_info) {
+    $game_code = $trainner_info['game_code'];
+    $security_key = $trainner_info['security_key'];
+    $data = $data_readed['team_items']['data'];
+    $team_size = 0;
+    $team_pokemon_list = 0;
+    $money = 0;
+    $coins = 0;
+    $pc_items = 0;
+    $item_pocket = 0;
+    $key_item_pocket = 0;
+    $ball_item_pocket = 0;
+    $TM_case = 0;
+    $berry_pocket = 0;
+    if ($game_code == 'Ruby/Sapphire') {
+        $team_size = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(564), getCharCountByBytesCount(4))));
+        $team_pokemon_list = substr($data, getCharCountByBytesCount(568), getCharCountByBytesCount(600));
+        $money = 'N/A';
+        $coins = 'N/A';
+        $pc_items = 'N/A';
+        $item_pocket = 'N/A';
+        $key_item_pocket = 'N/A';
+        $ball_item_pocket = 'N/A';
+        $TM_case = 'N/A';
+        $berry_pocket = 'N/A';
+    }
+    if ($game_code == 'FireRed/LeafGreen') {
+        $team_size = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(52), getCharCountByBytesCount(4))));
+        $team_pokemon_list = substr($data, getCharCountByBytesCount(56), getCharCountByBytesCount(600));
+        $money = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(656), getCharCountByBytesCount(4))), $security_key);
+        $coins = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(660), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2)));
+        $pc_items = substr($data, getCharCountByBytesCount(664), getCharCountByBytesCount(120));
+        $item_pocket = substr($data, getCharCountByBytesCount(784), getCharCountByBytesCount(168));
+        $key_item_pocket = substr($data, getCharCountByBytesCount(952), getCharCountByBytesCount(120));
+        $ball_item_pocket = substr($data, getCharCountByBytesCount(1072), getCharCountByBytesCount(52));
+        $TM_case = substr($data, getCharCountByBytesCount(1124), getCharCountByBytesCount(232));
+        $berry_pocket = substr($data, getCharCountByBytesCount(1356), getCharCountByBytesCount(172));
+    }
+    if ($game_code == 'Emerald') {
+        $team_size = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(564), getCharCountByBytesCount(4))));
+        $team_pokemon_list = substr($data, getCharCountByBytesCount(568), getCharCountByBytesCount(600));
+        $money = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1168), getCharCountByBytesCount(4))), $security_key);
+        $coins = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1172), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2)));
+        $pc_items = substr($data, getCharCountByBytesCount(1176), getCharCountByBytesCount(200));
+        $item_pocket = substr($data, getCharCountByBytesCount(1376), getCharCountByBytesCount(80));
+        $key_item_pocket = substr($data, getCharCountByBytesCount(1496), getCharCountByBytesCount(80));
+        $ball_item_pocket = substr($data, getCharCountByBytesCount(1536), getCharCountByBytesCount(64));
+        $TM_case = substr($data, getCharCountByBytesCount(1600), getCharCountByBytesCount(256));
+        $berry_pocket = substr($data, getCharCountByBytesCount(1856), getCharCountByBytesCount(184));
+    }
+    $team_pokemon_list_as_array = str_split($team_pokemon_list, getCharCountByBytesCount(100));
+    $pokemon_party = [];
+    for($i = 0; $i < $team_size; $i++) {
+        array_push($pokemon_party, build_pokemon_from_data($team_pokemon_list_as_array[$i]));
+    }
+    $toReturn = [
+        'team_size' => $team_size,
+        'team_pokemon_list' => $pokemon_party,
+        'money' => $money,
+        'coins' => $coins,
+        'pc_items' => $pc_items,
+        'item_pocket' => $item_pocket,
+        'key_item_pocket' => $key_item_pocket,
+        'ball_item_pocket' => $ball_item_pocket,
+        'TM_case' => $TM_case,
+        'berry_pocket' => $berry_pocket,
+    ];
+    return $toReturn;
+}
+
+function decodeXOR($dataToDecode, $security_key) {
+    $toReturn = '';
+    $toDecode = convert_hex_to_bin($dataToDecode);
+    $key = convert_hex_to_bin($security_key);
+    for($i=0; $i<strlen($toDecode); )
+    {
+        for($j=0; ($j<strlen($key) && $i<strlen($toDecode)); $j++,$i++)
+        {
+            $toReturn .= xorByDigit($toDecode[$i], $key[$j]);
+        }
+    }
+    return bindec($toReturn);
+}
+
+function xorByDigit($A, $B) {
+    if ($A == $B) {
+        return '0';
+    }
+    return '1';
+}
+
 header('Content-type:application/json;charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -326,10 +424,16 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
-$filename = 'ANDRES.sav';
+$filename = 'COMPLETO.sav';
 $result = read_pokesave($filename);
-$trainner_data = process_trainner_data(($result['game_save_a']));
-$pokemon_boxes = proccess_pc_buffer($result['game_save_a']);
-echo json_encode($trainner_data);
+$trainner_info = process_trainner_data($result['game_save_a']);
+$pokemon_pc_boxes = proccess_pc_buffer($result['game_save_a']);
+$team_items = process_team_items($result['game_save_a'], $trainner_info);
+$toReturn = [
+    "trainner_info" => $trainner_info,
+    "pokemon_pc_boxes" => $pokemon_pc_boxes,
+    "team_items" => $team_items,
+];
+echo json_encode($toReturn);
 //echo json_encode(traduce_from_string('Luis'));
 //echo json_encode(traduce_to_string("bccfc6bcbbcdbbcfcc"));
