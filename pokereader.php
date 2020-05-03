@@ -321,7 +321,7 @@ function build_pokemon_from_data($pokemon_data) {
         "0206"=>"KOREAN",
         "0207"=>"SPANISH",
     ];
-    $personality_value = process_personality_value(substr($pokemon_data, 0, getCharCountByBytesCount(4)));
+    $personality_value = process_personality_value(orderBytesToReadAsNumber(substr($pokemon_data, 0, getCharCountByBytesCount(4))));
     $toReturn = [
         'personality_value'=>$personality_value,
         'original_trainer_id'=>substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)),
@@ -331,17 +331,67 @@ function build_pokemon_from_data($pokemon_data) {
         'markings'=>hexdec(substr($pokemon_data, getCharCountByBytesCount(27), getCharCountByBytesCount(1))),
         'checksum'=>substr($pokemon_data, getCharCountByBytesCount(28), getCharCountByBytesCount(2)),
         'wtf'=>substr($pokemon_data, getCharCountByBytesCount(30), getCharCountByBytesCount(2)),
-        'data'=>process_pokemon_subdata(str_split(substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48)), getCharCountByBytesCount(12))),
+        'data'=>process_pokemon_subdata(str_split(substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48)), getCharCountByBytesCount(12)), orderBytesToReadAsNumber(substr($pokemon_data, 0, getCharCountByBytesCount(4)))),
     ];
     return $toReturn;
 }
 
-function process_pokemon_subdata($pokemon_subdata) {
+function process_pokemon_subdata($pokemon_subdata, $personality_value) {
+    $data_order_index = hexdec($personality_value)%24;
+    $data_order = ['GAEM', 'GAME', 'GEAM', 'GEMA', 'GMAE', 'GMEA'];
     return $pokemon_subdata;
 }
 
 function process_personality_value($value) {
-    return $value;
+    $gender = hexdec(substr($value, getCharCountByBytesCount(3), getCharCountByBytesCount(1)));
+    $value_bin = convert_hex_to_bin($value);
+    $ability = substr($value_bin, -1, 1);
+    $ability_to_show = '';
+    if ($ability == '0') {
+        $ability_to_show = 'FIRST';
+    }
+    if ($ability == '1') {
+        $ability_to_show = 'SECOND';
+    }
+    $nature_index = hexdec(substr($value, getCharCountByBytesCount(0), getCharCountByBytesCount(4))) % 25;
+    $nature_dictionary = [
+        ['name'=>'Hardy', 'stat_1'=>'-Attack', 'stat_2'=>'+Attack'],
+        ['name'=>'Lonely', 'stat_1'=>'-Defense', 'stat_2'=>'+Attack'],
+        ['name'=>'Brave', 'stat_1'=>'-Speed', 'stat_2'=>'+Attack'],
+        ['name'=>'Adamant', 'stat_1'=>'-Sp.Atk', 'stat_2'=>'+Attack'],
+        ['name'=>'Naughty', 'stat_1'=>'-Sp.Def', 'stat_2'=>'+Attack'],
+        ['name'=>'Bold', 'stat_1'=>'-Attack', 'stat_2'=>'+Defense'],
+        ['name'=>'Docile', 'stat_1'=>'-Defense', 'stat_2'=>'+Defense'],
+        ['name'=>'Relaxed', 'stat_1'=>'-Seed', 'stat_2'=>'+Defense'],
+        ['name'=>'Impish', 'stat_1'=>'-Sp.Atk', 'stat_2'=>'+Defense'],
+        ['name'=>'Lax', 'stat_1'=>'-Sp.Def', 'stat_2'=>'+Defense'],
+        ['name'=>'Timid', 'stat_1'=>'-Attack', 'stat_2'=>'+Speed'],
+        ['name'=>'Hasty', 'stat_1'=>'-Defense', 'stat_2'=>'+Speed'],
+        ['name'=>'Serious', 'stat_1'=>'-Speed', 'stat_2'=>'+Speed'],
+        ['name'=>'Jolly', 'stat_1'=>'-Sp.Atk', 'stat_2'=>'+Speed'],
+        ['name'=>'Naive', 'stat_1'=>'-Sp.Def', 'stat_2'=>'+Speed'],
+        ['name'=>'Modest', 'stat_1'=>'-Attack', 'stat_2'=>'+Sp.Atk'],
+        ['name'=>'Mild', 'stat_1'=>'-Defense', 'stat_2'=>'+Sp.Atk'],
+        ['name'=>'Quiet', 'stat_1'=>'-Speed', 'stat_2'=>'+Sp.Atk'],
+        ['name'=>'Bashful', 'stat_1'=>'-Sp.Atk', 'stat_2'=>'+Sp.Atk'],
+        ['name'=>'Rash', 'stat_1'=>'-Sp.Def', 'stat_2'=>'+Sp.Atk'],
+        ['name'=>'Calm', 'stat_1'=>'-Attack', 'stat_2'=>'+Sp.Def'],
+        ['name'=>'Gentle', 'stat_1'=>'-Defense', 'stat_2'=>'+Sp.Def'],
+        ['name'=>'Sassy', 'stat_1'=>'-Speed', 'stat_2'=>'+Sp.Def'],
+        ['name'=>'Careful', 'stat_1'=>'-Sp.Atk', 'stat_2'=>'+Sp.Def'],
+        ['name'=>'Quirky', 'stat_1'=>'-Sp.Def', 'stat_2'=>'+Sp.Def'],
+    ];
+    $unown_letter_index = bindec(substr($value_bin, 6, 2) . substr($value_bin, 14, 2) . substr($value_bin, 22, 2) . substr($value_bin, 30, 2)) % 28;
+    $unown_letter_map = ['A','B','C','D','E','F','G','H','I','J',
+                         'K','L','M','N','O','P','Q','R','S','T',
+                         'U','V','W','X','Y','Z','?','!'];
+    $toReturn = [
+        'unown_letter'=>$unown_letter_map[$unown_letter_index],
+        'p_gender'=>$gender,
+        'ability'=>$ability_to_show,
+        'nature'=>$nature_dictionary[$nature_index],
+    ];
+    return $toReturn;
 }
 
 function process_team_items($data_readed, $trainer_info) {
@@ -450,12 +500,12 @@ function process_hall_of_fame($hall_of_fame_data) {
 }
 
 function process_pokemon_hall_of_fame($pokemon_data) {
-    $personality_value = process_personality_value(substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)));
+    $personality_value = process_personality_value(orderBytesToReadAsNumber(substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4))));
     $toReturn = [
         "trainer_id" => substr($pokemon_data, 0, getCharCountByBytesCount(4)),
         "personality_value" => $personality_value,
         "spiece" => hexdec(substr($pokemon_data, getCharCountByBytesCount(8), getCharCountByBytesCount(1))),
-        "level" => substr($pokemon_data, getCharCountByBytesCount(9), getCharCountByBytesCount(1)),
+        "level" => bindec(substr(convert_hex_to_bin(substr($pokemon_data, getCharCountByBytesCount(9), getCharCountByBytesCount(1))),0,7)),
         "nickname" => traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(10), getCharCountByBytesCount(10))),
     ];
     return $toReturn;
