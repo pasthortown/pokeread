@@ -1,5 +1,7 @@
 <?php
 include_once('./alfabeto.php');
+include_once('./pokemon_gender_ratio.php');
+include_once('./pokemon_aviable.php');
 
 function traduce_to_string($hex_code) {
     $toTraduce = str_split($hex_code,2);
@@ -163,7 +165,7 @@ function process_trainer_data($data_readed) {
     }
     $player_name = traduce_to_string(substr($data, getCharCountByBytesCount(0), getCharCountByBytesCount(7)));
     $player_gender = $gender;
-    $player_trainer_id = substr($data, getCharCountByBytesCount(10), getCharCountByBytesCount(4));
+    $player_trainer_id = orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(10), getCharCountByBytesCount(4)));
     $player_time_played = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(14), getCharCountByBytesCount(2))))."H " .
                           hexdec(substr($data, getCharCountByBytesCount(16), getCharCountByBytesCount(1)))."m ".
                           hexdec(substr($data, getCharCountByBytesCount(17), getCharCountByBytesCount(1)))."s ".
@@ -322,24 +324,165 @@ function build_pokemon_from_data($pokemon_data) {
         "0207"=>"SPANISH",
     ];
     $personality_value = process_personality_value(orderBytesToReadAsNumber(substr($pokemon_data, 0, getCharCountByBytesCount(4))));
+    $pokemon_subdata_bytes = substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48));
+    $pokemon_data_bytes = str_split($pokemon_subdata_bytes, getCharCountByBytesCount(12));
+    $personality_value_bytes = orderBytesToReadAsNumber(substr($pokemon_data, 0, getCharCountByBytesCount(4)));
+    $original_trainer_id = orderBytesToReadAsNumber(substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)));
     $toReturn = [
         'personality_value'=>$personality_value,
-        'original_trainer_id'=>substr($pokemon_data, getCharCountByBytesCount(4), getCharCountByBytesCount(4)),
+        'original_trainer_id'=>$original_trainer_id,
         'nickname'=>traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(8), getCharCountByBytesCount(10))),
         'language'=>$language_aviable[substr($pokemon_data, getCharCountByBytesCount(18), getCharCountByBytesCount(2))],
         'original_trainer_name'=>traduce_to_string(substr($pokemon_data, getCharCountByBytesCount(20), getCharCountByBytesCount(7))),
         'markings'=>hexdec(substr($pokemon_data, getCharCountByBytesCount(27), getCharCountByBytesCount(1))),
         'checksum'=>substr($pokemon_data, getCharCountByBytesCount(28), getCharCountByBytesCount(2)),
         'wtf'=>substr($pokemon_data, getCharCountByBytesCount(30), getCharCountByBytesCount(2)),
-        'data'=>process_pokemon_subdata(str_split(substr($pokemon_data, getCharCountByBytesCount(32), getCharCountByBytesCount(48)), getCharCountByBytesCount(12)), orderBytesToReadAsNumber(substr($pokemon_data, 0, getCharCountByBytesCount(4)))),
+        'data'=>process_pokemon_subdata($pokemon_data_bytes, $personality_value_bytes, $original_trainer_id),
     ];
     return $toReturn;
 }
 
-function process_pokemon_subdata($pokemon_subdata, $personality_value) {
+function process_pokemon_subdata($pokemon_subdata, $personality_value, $original_trainer_id) {
     $data_order_index = hexdec($personality_value)%24;
-    $data_order = ['GAEM', 'GAME', 'GEAM', 'GEMA', 'GMAE', 'GMEA'];
-    return $pokemon_subdata;
+    $data_order_table = [
+        'GAEM', 'GAME', 'GEAM', 'GEMA', 'GMAE', 'GMEA',
+        'AGEM', 'AGME', 'AEGM', 'AEMG', 'AMGE', 'AMEG',
+        'EGAM', 'EGMA', 'EAGM', 'EAMG', 'EMGA', 'EMAG',
+        'MGAE', 'MGEA', 'MAGE', 'MAEG', 'MEGA', 'MEAG',
+    ];
+    $data_order = str_split($data_order_table[$data_order_index], 1);
+    $decrypt_key = XORALLBYTES($original_trainer_id, $personality_value);
+    $pokemon_data_in_order = [
+        $data_order[0]=>convertBinToHex(decodeXOR(orderBytesToReadAsNumber($pokemon_subdata[0]), $decrypt_key)),
+        $data_order[1]=>convertBinToHex(decodeXOR(orderBytesToReadAsNumber($pokemon_subdata[1]), $decrypt_key)),
+        $data_order[2]=>convertBinToHex(decodeXOR(orderBytesToReadAsNumber($pokemon_subdata[2]), $decrypt_key)),
+        $data_order[3]=>convertBinToHex(decodeXOR(orderBytesToReadAsNumber($pokemon_subdata[3]), $decrypt_key)),
+    ];
+    $growth = process_growth(orderBytesToReadAsNumber($pokemon_data_in_order['G']));
+    $attacks = process_attacks(orderBytesToReadAsNumber($pokemon_data_in_order['A']));
+    $evs = process_evs(orderBytesToReadAsNumber($pokemon_data_in_order['E']));
+    $miscellaneous = process_miscellaneous(orderBytesToReadAsNumber($pokemon_data_in_order['M']));
+    $toReturn = [
+        'Growth'=>$growth,
+        'Attacks'=>$attacks,
+        'EVs'=>$evs,
+        'Miscellaneous'=>$miscellaneous,
+    ];
+    return $toReturn;
+}
+
+function process_growth($bytes) {
+    $specie = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(2));
+    $item_held = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(2));
+    $experience = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(4));
+    $pp_bonuses = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
+    $friendship = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
+    $unknown = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(2));
+    $toReturn = [
+        'specie'=>hexdec(orderBytesToReadAsNumber($specie)),
+        'item_held'=>$item_held,
+        'experience'=>hexdec(orderBytesToReadAsNumber($experience)),
+        'pp_bonuses'=>$pp_bonuses,
+        'friendship'=>$friendship,
+        'unknown'=>$unknown,
+        'bytes'=>$bytes,
+    ];
+    return $toReturn;
+}
+
+function process_attacks($bytes) {
+    $move_1 = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(2));
+    $move_2 = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(2));
+    $move_3 = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(2));
+    $move_4 = substr($bytes, getCharCountByBytesCount(6), getCharCountByBytesCount(2));
+    $pp_1 = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
+    $pp_2 = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
+    $pp_3 = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1));
+    $pp_4 = substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1));
+    $toReturn = [
+        'move_1'=>$move_1,
+        'move_2'=>$move_2,
+        'move_3'=>$move_3,
+        'move_4'=>$move_4,
+        'pp_1'=>$pp_1,
+        'pp_2'=>$pp_2,
+        'pp_3'=>$pp_3,
+        'pp_4'=>$pp_4,
+    ];
+    return $toReturn;
+}
+
+function process_evs($bytes) {
+    $hp = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(1));
+    $attack = substr($bytes, getCharCountByBytesCount(1), getCharCountByBytesCount(1));
+    $defense = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(1));
+    $speed = substr($bytes, getCharCountByBytesCount(3), getCharCountByBytesCount(1));
+    $special_attack = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(1));
+    $special_defense = substr($bytes, getCharCountByBytesCount(5), getCharCountByBytesCount(1));
+    $coolness = substr($bytes, getCharCountByBytesCount(6), getCharCountByBytesCount(1));
+    $beauty = substr($bytes, getCharCountByBytesCount(7), getCharCountByBytesCount(1));
+    $cuteness = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
+    $smartness = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
+    $toughness = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1));
+    $feel = substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1));
+    $toReturn = [
+        'hp'=>$hp,
+        'attack'=>$attack,
+        'defense'=>$defense,
+        'speed'=>$speed,
+        'special_attack'=>$special_attack,
+        'special_defense'=>$special_defense,
+        'coolness'=>$coolness,
+        'beauty'=>$beauty,
+        'cuteness'=>$cuteness,
+        'smartness'=>$smartness,
+        'toughness'=>$toughness,
+        'feel'=>$feel
+    ];
+    return $toReturn;
+}
+
+function process_miscellaneous($bytes) {
+    $pokerus_status = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(1));
+    $met_location = substr($bytes, getCharCountByBytesCount(1), getCharCountByBytesCount(1));
+    $origins_info = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(2));
+    $iv_egg_ability = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(4));
+    $ribbons_obedience = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(4));
+    $toReturn = [
+        'pokerus_status'=>$pokerus_status,
+        'met_location'=>$met_location,
+        'origins_info'=>$origins_info,
+        'iv_egg_ability'=>$iv_egg_ability,
+        'ribbons_obedience'=>$ribbons_obedience
+    ];
+    return $toReturn;
+}
+
+function convertBinToHex($input) {
+    $toConvert = str_split($input,4);
+    $toReturn = '';
+    $bin2hex = [
+        '0000'=>'0',
+        '0001'=>'1',
+        '0010'=>'2',
+        '0011'=>'3',
+        '0100'=>'4',
+        '0101'=>'5',
+        '0110'=>'6',
+        '0111'=>'7',
+        '1000'=>'8',
+        '1001'=>'9',
+        '1010'=>'a',
+        '1011'=>'b',
+        '1100'=>'c',
+        '1101'=>'d',
+        '1110'=>'e',
+        '1111'=>'f',
+    ];
+    foreach($toConvert as $byte) {
+        $toReturn .= $bin2hex[$byte];
+    }
+    return $toReturn;
 }
 
 function process_personality_value($value) {
@@ -423,8 +566,8 @@ function process_team_items($data_readed, $trainer_info) {
     if ($game_code == 'FireRed/LeafGreen') {
         $team_size = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(52), getCharCountByBytesCount(4))));
         $team_pokemon_list = substr($data, getCharCountByBytesCount(56), getCharCountByBytesCount(600));
-        $money = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(656), getCharCountByBytesCount(4))), $security_key);
-        $coins = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(660), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2)));
+        $money = bindec(decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(656), getCharCountByBytesCount(4))), $security_key));
+        $coins = bindec(decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(660), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2))));
         $pc_items = substr($data, getCharCountByBytesCount(664), getCharCountByBytesCount(120));
         $item_pocket = substr($data, getCharCountByBytesCount(784), getCharCountByBytesCount(168));
         $key_item_pocket = substr($data, getCharCountByBytesCount(952), getCharCountByBytesCount(120));
@@ -435,8 +578,8 @@ function process_team_items($data_readed, $trainer_info) {
     if ($game_code == 'Emerald') {
         $team_size = hexdec(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(564), getCharCountByBytesCount(4))));
         $team_pokemon_list = substr($data, getCharCountByBytesCount(568), getCharCountByBytesCount(600));
-        $money = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1168), getCharCountByBytesCount(4))), $security_key);
-        $coins = decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1172), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2)));
+        $money = bindec(decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1168), getCharCountByBytesCount(4))), $security_key));
+        $coins = bindec(decodeXOR(orderBytesToReadAsNumber(substr($data, getCharCountByBytesCount(1172), getCharCountByBytesCount(2))), substr($security_key, getCharCountByBytesCount(2) * (-1), getCharCountByBytesCount(2))));
         $pc_items = substr($data, getCharCountByBytesCount(1176), getCharCountByBytesCount(200));
         $item_pocket = substr($data, getCharCountByBytesCount(1376), getCharCountByBytesCount(80));
         $key_item_pocket = substr($data, getCharCountByBytesCount(1496), getCharCountByBytesCount(80));
@@ -475,7 +618,18 @@ function decodeXOR($dataToDecode, $security_key) {
             $toReturn .= xorByDigit($toDecode[$i], $key[$j]);
         }
     }
-    return bindec($toReturn);
+    return $toReturn;
+}
+
+function XORALLBYTES($array1, $array2) {
+    $toReturn = '';
+    $array_1_bits = str_split(convert_hex_to_bin($array1),1);
+    $array_2_bits = str_split(convert_hex_to_bin($array2),1);
+    for($i=0; $i<sizeof($array_1_bits); $i++)
+    {
+        $toReturn .= xorByDigit($array_1_bits[$i], $array_2_bits[$i]);
+    }
+    return dechex(bindec($toReturn));
 }
 
 function xorByDigit($A, $B) {
