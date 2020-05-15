@@ -379,7 +379,8 @@ function process_growth($bytes) {
     $friendship = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
     $unknown = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(2));
     $toReturn = [
-        'specie'=>hexdec(orderBytesToReadAsNumber($specie)),
+        'id_specie'=>hexdec(orderBytesToReadAsNumber($specie)),
+        'specie'=>POKEMON_AVIABLE[hexdec(orderBytesToReadAsNumber($specie))],
         'item_held'=>$item_held,
         'experience'=>hexdec(orderBytesToReadAsNumber($experience)),
         'pp_bonuses'=>$pp_bonuses,
