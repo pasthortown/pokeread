@@ -372,15 +372,16 @@ function process_pokemon_subdata($pokemon_subdata, $personality_value, $original
 }
 
 function process_growth($bytes) {
-    $specie = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(2));
+    $specie_data = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(2));
+    $id_specie = hexdec(orderBytesToReadAsNumber($specie_data));
     $item_held = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(2));
     $experience = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(4));
     $pp_bonuses = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
     $friendship = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
     $unknown = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(2));
     $toReturn = [
-        'id_specie'=>hexdec(orderBytesToReadAsNumber($specie)),
-        'specie'=>POKEMON_AVIABLE[hexdec(orderBytesToReadAsNumber($specie))],
+        'id_specie'=>$id_specie,
+        'specie'=>POKEMON_AVIABLE[$id_specie - 1],
         'item_held'=>$item_held,
         'experience'=>hexdec(orderBytesToReadAsNumber($experience)),
         'pp_bonuses'=>$pp_bonuses,
