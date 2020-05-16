@@ -382,12 +382,11 @@ function process_growth($bytes) {
     $toReturn = [
         'id_specie'=>$id_specie,
         'specie'=>POKEMON_AVIABLE[$id_specie - 1],
-        'item_held'=>$item_held,
+        'item_held'=>hexdec(orderBytesToReadAsNumber($item_held)),
         'experience'=>hexdec(orderBytesToReadAsNumber($experience)),
-        'pp_bonuses'=>$pp_bonuses,
-        'friendship'=>$friendship,
+        'pp_bonuses'=>hexdec(orderBytesToReadAsNumber($pp_bonuses)),
+        'friendship'=>hexdec(orderBytesToReadAsNumber($friendship)),
         'unknown'=>$unknown,
-        'bytes'=>$bytes,
     ];
     return $toReturn;
 }
@@ -402,31 +401,31 @@ function process_attacks($bytes) {
     $pp_3 = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1));
     $pp_4 = substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1));
     $toReturn = [
-        'move_1'=>$move_1,
-        'move_2'=>$move_2,
-        'move_3'=>$move_3,
-        'move_4'=>$move_4,
-        'pp_1'=>$pp_1,
-        'pp_2'=>$pp_2,
-        'pp_3'=>$pp_3,
-        'pp_4'=>$pp_4,
+        'move_1'=>hexdec(orderBytesToReadAsNumber($move_1)),
+        'move_2'=>hexdec(orderBytesToReadAsNumber($move_2)),
+        'move_3'=>hexdec(orderBytesToReadAsNumber($move_3)),
+        'move_4'=>hexdec(orderBytesToReadAsNumber($move_4)),
+        'pp_1'=>hexdec(orderBytesToReadAsNumber($pp_1)),
+        'pp_2'=>hexdec(orderBytesToReadAsNumber($pp_2)),
+        'pp_3'=>hexdec(orderBytesToReadAsNumber($pp_3)),
+        'pp_4'=>hexdec(orderBytesToReadAsNumber($pp_4)),
     ];
     return $toReturn;
 }
 
 function process_evs($bytes) {
-    $hp = substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(1));
-    $attack = substr($bytes, getCharCountByBytesCount(1), getCharCountByBytesCount(1));
-    $defense = substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(1));
-    $speed = substr($bytes, getCharCountByBytesCount(3), getCharCountByBytesCount(1));
-    $special_attack = substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(1));
-    $special_defense = substr($bytes, getCharCountByBytesCount(5), getCharCountByBytesCount(1));
-    $coolness = substr($bytes, getCharCountByBytesCount(6), getCharCountByBytesCount(1));
-    $beauty = substr($bytes, getCharCountByBytesCount(7), getCharCountByBytesCount(1));
-    $cuteness = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1));
-    $smartness = substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1));
-    $toughness = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1));
-    $feel = substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1));
+    $hp = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(0), getCharCountByBytesCount(1))));
+    $attack = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(1), getCharCountByBytesCount(1))));
+    $defense = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(2), getCharCountByBytesCount(1))));
+    $speed = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(3), getCharCountByBytesCount(1))));
+    $special_attack = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(4), getCharCountByBytesCount(1))));
+    $special_defense = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(5), getCharCountByBytesCount(1))));
+    $coolness = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(6), getCharCountByBytesCount(1))));
+    $beauty = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(7), getCharCountByBytesCount(1))));
+    $cuteness = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(1))));
+    $smartness = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(9), getCharCountByBytesCount(1))));
+    $toughness = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1))));
+    $feel = hexdec(orderBytesToReadAsNumber(substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1))));
     $toReturn = [
         'hp'=>$hp,
         'attack'=>$attack,
@@ -452,7 +451,7 @@ function process_miscellaneous($bytes) {
     $ribbons_obedience = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(4));
     $toReturn = [
         'pokerus_status'=>$pokerus_status,
-        'met_location'=>$met_location,
+        'met_location'=>hexdec(orderBytesToReadAsNumber($met_location)),
         'origins_info'=>$origins_info,
         'iv_egg_ability'=>$iv_egg_ability,
         'ribbons_obedience'=>$ribbons_obedience
