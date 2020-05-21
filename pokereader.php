@@ -2,6 +2,8 @@
 include_once('./alfabeto.php');
 include_once('./pokemon_gender_ratio.php');
 include_once('./pokemon_aviable.php');
+include_once('./pokemon_attacks.php');
+include_once('./locations.php');
 
 function traduce_to_string($hex_code) {
     $toTraduce = str_split($hex_code,2);
@@ -401,10 +403,10 @@ function process_attacks($bytes) {
     $pp_3 = substr($bytes, getCharCountByBytesCount(10), getCharCountByBytesCount(1));
     $pp_4 = substr($bytes, getCharCountByBytesCount(11), getCharCountByBytesCount(1));
     $toReturn = [
-        'move_1'=>hexdec(orderBytesToReadAsNumber($move_1)),
-        'move_2'=>hexdec(orderBytesToReadAsNumber($move_2)),
-        'move_3'=>hexdec(orderBytesToReadAsNumber($move_3)),
-        'move_4'=>hexdec(orderBytesToReadAsNumber($move_4)),
+        'move_1'=>(hexdec(orderBytesToReadAsNumber($move_1)) == 0 ? 0 : POKEMON_ATTACKS[hexdec(orderBytesToReadAsNumber($move_1)) - 1]),
+        'move_2'=>(hexdec(orderBytesToReadAsNumber($move_2)) == 0 ? 0 : POKEMON_ATTACKS[hexdec(orderBytesToReadAsNumber($move_2)) - 1]),
+        'move_3'=>(hexdec(orderBytesToReadAsNumber($move_3)) == 0 ? 0 : POKEMON_ATTACKS[hexdec(orderBytesToReadAsNumber($move_3)) - 1]),
+        'move_4'=>(hexdec(orderBytesToReadAsNumber($move_4)) == 0 ? 0 : POKEMON_ATTACKS[hexdec(orderBytesToReadAsNumber($move_4)) - 1]),
         'pp_1'=>hexdec(orderBytesToReadAsNumber($pp_1)),
         'pp_2'=>hexdec(orderBytesToReadAsNumber($pp_2)),
         'pp_3'=>hexdec(orderBytesToReadAsNumber($pp_3)),
@@ -451,7 +453,7 @@ function process_miscellaneous($bytes) {
     $ribbons_obedience = substr($bytes, getCharCountByBytesCount(8), getCharCountByBytesCount(4));
     $toReturn = [
         'pokerus_status'=>$pokerus_status,
-        'met_location'=>hexdec(orderBytesToReadAsNumber($met_location)),
+        'met_location'=>LOCATIONS[hexdec(orderBytesToReadAsNumber($met_location))],
         'origins_info'=>$origins_info,
         'iv_egg_ability'=>$iv_egg_ability,
         'ribbons_obedience'=>$ribbons_obedience
