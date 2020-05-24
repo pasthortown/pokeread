@@ -1,5 +1,7 @@
 <?php
 
+include_once('./pokemon_ev.php');
+
 header('Content-type:application/json;charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -15,4 +17,5 @@ $filename = './pokeapi/'.$pokemon_id.'.json';
 $file = fopen($filename,'r');
 $content = fread($file, filesize($filename));
 fclose($file);
-echo $content;
+
+echo json_encode(["pokeapi_data"=>json_decode($content), "evs"=>POKEMON_EV[$pokemon_id - 1]]);
